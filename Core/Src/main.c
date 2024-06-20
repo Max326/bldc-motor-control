@@ -27,6 +27,8 @@
 //#include "stm32f4xx_hal_usart.h"
 #include "stm32f4xx_hal_gpio.h"
 
+#include "stdio.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,8 +51,10 @@ ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim1;
 
-/* USER CODE BEGIN PV */
+UART_HandleTypeDef huart6;
 
+/* USER CODE BEGIN PV */
+uint32_t pot;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,19 +62,13 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void Motor_Init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void Motor_Init(void)
-{
-    MX_GPIO_Init();
-    MX_ADC1_Init();
-    MX_TIM1_Init();
-    //MX_USART1_UART_Init();
-}
 /* USER CODE END 0 */
 
 /**
@@ -102,9 +100,12 @@ int main(void)
   MX_GPIO_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
-  Motor_Init();
+
   Motor_Start();
+
+//  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -117,10 +118,36 @@ int main(void)
 //	uint16_t speed = 4000; // Example speed value
 //	Motor_SetSpeed(speed);
 	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+//
+	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
+//
+//	HAL_ADC_Start(&hadc1);
+////	pot = HAL_ADC_GetValue(&hadc1);
+////	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+////	printf("dupa %lu\n", pot);
+//
+//
+//	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
+//		pot = HAL_ADC_GetValue(&hadc1);
+//		printf("Potentiometer value: %lu\n", pot);
+//	} else {
+//		printf("ADC PollForConversion failed\n");
+//	}
+//
+//
+	HAL_Delay(1000);
 
 	Spin_Motor();
+//
 
-	HAL_Delay(1000);
+	  // working adc
+//	  HAL_ADC_Start(&hadc1);
+//	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+//
+//	  uint32_t value = HAL_ADC_GetValue(&hadc1);
+//	  printf("ADC = %lu\n", value);
+//
+//	  HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
@@ -195,7 +222,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -297,6 +324,39 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 115200;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -309,24 +369,35 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, LD3_Pin|LDN_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : LD3_Pin */
-  GPIO_InitStruct.Pin = LD3_Pin;
+  /*Configure GPIO pins : LD3_Pin LDN_Pin */
+  GPIO_InitStruct.Pin = LD3_Pin|LDN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD3_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+int __io_putchar(int ch)
+{
+    if (ch == '\n') {
+        uint8_t ch6 = '\r';
+        HAL_UART_Transmit(&huart6, &ch6, 1, HAL_MAX_DELAY);
+    }
+
+    HAL_UART_Transmit(&huart6, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
+    return 1;
+}
 
 // maybe later
 
@@ -452,6 +523,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
+    printf("Wrong parameters value: file %s on line %d\n", file, line);
+
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */

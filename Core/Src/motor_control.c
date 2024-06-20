@@ -80,18 +80,18 @@ void Delay(volatile uint32_t delay) {
 //}
 
 void Spin_Motor(void) {
-    uint16_t speed = 100-1; // Example initial speed (duty cycle)
+    uint16_t speed = 50; // Example speed (duty cycle)
     while (1) {
         // Commutation state 1: A+ B- Cx
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
         HAL_Delay(1);
 
         // Commutation state 2: A+ Bx C-
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
         HAL_Delay(1);
 
         // Commutation state 3: Ax B+ C-
@@ -100,25 +100,66 @@ void Spin_Motor(void) {
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
         HAL_Delay(1);
 
-        // Commutation state 4: Ax B+ Cx
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+        // Commutation state 4: A- B+ Cx
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
         HAL_Delay(1);
 
-        // Commutation state 5: A- B+ Cx
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-        HAL_Delay(1);
-
-        // Commutation state 6: A- Bx C+
+        // Commutation state 5: A- Bx C+
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
         HAL_Delay(1);
+
+        // Commutation state 6: Ax B- C+
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+        HAL_Delay(1);
     }
 }
+
+//void Spin_Motor(void) {
+//    uint16_t speed = 100-1; // Example initial speed (duty cycle)
+//    while (1) {
+//        // Commutation state 1: A+ B- Cx
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+//        HAL_Delay(1);
+//
+//        // Commutation state 2: A+ Bx C-
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+//        HAL_Delay(1);
+//
+//        // Commutation state 3: Ax B+ C-
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+//        HAL_Delay(1);
+//
+//        // Commutation state 4: Ax B+ Cx
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+//        HAL_Delay(1);
+//
+//        // Commutation state 5: A- B+ Cx
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+//        HAL_Delay(1);
+//
+//        // Commutation state 6: A- Bx C+
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+//        HAL_Delay(1);
+//    }
+//}
 
 
 void Motor_Stop(void)
