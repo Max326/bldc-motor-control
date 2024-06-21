@@ -1,5 +1,5 @@
-../Core/Src/motor_control.c:27:6:Motor_Start	8	static
-../Core/Src/motor_control.c:35:6:Delay	16	static,ignoring_inline_asm
-../Core/Src/motor_control.c:82:6:Spin_Motor	16	static
-../Core/Src/motor_control.c:165:6:Motor_Stop	8	static
-../Core/Src/motor_control.c:173:6:Motor_SetSpeed	16	static
+../Core/Src/motor_control.c:12:6:Motor_Start	8	static
+../Core/Src/motor_control.c:25:6:Delay	16	static,ignoring_inline_asm
+../Core/Src/motor_control.c:32:6:Spin_Motor	16	static
+../Core/Src/motor_control.c:76:6:Motor_Stop	8	static
+../Core/Src/motor_control.c:84:6:Motor_SetSpeed	16	static

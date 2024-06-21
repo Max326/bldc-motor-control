@@ -59,6 +59,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define PWM1EN_Pin GPIO_PIN_12
+#define PWM1EN_GPIO_Port GPIOB
+#define PWM2EN_Pin GPIO_PIN_13
+#define PWM2EN_GPIO_Port GPIOB
+#define PWM3EN_Pin GPIO_PIN_14
+#define PWM3EN_GPIO_Port GPIOB
 #define LD3_Pin GPIO_PIN_12
 #define LD3_GPIO_Port GPIOD
 #define LDN_Pin GPIO_PIN_15
