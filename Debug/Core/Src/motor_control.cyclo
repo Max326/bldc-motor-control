@@ -1,8 +1,6 @@
-motor_control.c:94:6:Motor_Start	1
-motor_control.c:118:6:Delay	2
-motor_control.c:124:6:Spin_Motor	1
-motor_control.c:133:6:Motor_Stop	1
-motor_control.c:141:6:Motor_SetSpeed	1
-motor_control.c:148:6:bldc_motor_PWM_Config_Channel	1
-motor_control.c:157:6:bldc_motor_OC_Config_Channel	1
-motor_control.c:165:6:bldc_motor_six_step_algorithm	11
+motor_control.c:127:6:bldc_motor_init	1
+motor_control.c:150:6:bldc_motor_set_speed	2
+motor_control.c:190:6:bldc_motor_Config_Channel_Init	1
+motor_control.c:201:6:bldc_motor_PWM_Config_Channel	1
+motor_control.c:211:6:bldc_motor_OC_Config_Channel	1
+motor_control.c:220:6:bldc_motor_six_step_algorithm	11

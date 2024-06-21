@@ -91,58 +91,111 @@
 
 BLDC_Motor bldc;
 
-void Motor_Start(void)
+#define ARR_TIM3_VALUE			100
+#define BLDC_MOTOR_MAX_SPEED	100
+
+#define CW 		1
+#define CCW 	-1
+
+//void Motor_Start(void)
+//{
+//    // Enabling PWM
+//    HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+//    HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+//    HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+//
+//    // Initialize BLDC motor control parameters
+//    bldc.step_number = 1;
+//    bldc.speed_pulse = 0;  // Example initial speed (duty cycle)
+//    bldc.dir = 1;  // Set direction to CW
+//
+////    bldc.tim_pwm = &htim1;
+//	bldc.tim_pwm = _tim_pwm;
+//	bldc.tim_com = _tim_com;
+//
+//    // Start PWM signals
+//    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+//    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+//    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+//
+//    //fucking around
+////    HAL_GPIO_WritePin(PH1_GPIO_Port, PH1_Pin, GPIO_PIN_SET);
+////	HAL_GPIO_WritePin(PH2_GPIO_Port, PH2_Pin, GPIO_PIN_SET);
+////	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+//}
+
+void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 {
-    // Enabling PWM
-    HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
-    // Initialize BLDC motor control parameters
-    bldc.step_number = 1;
-    bldc.speed_pulse = 50;  // Example initial speed (duty cycle)
-    bldc.dir = 1;  // Set direction to CW
-    bldc.tim_pwm = &htim1;
+	bldc.tim_pwm = _tim_pwm;
+	bldc.tim_com = _tim_com;
 
-    // Start PWM signals
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	bldc.step_number = 1;
+	bldc.speed_pulse = 0;
+	bldc.dir = CW;
 
-    //fucking around
-//    HAL_GPIO_WritePin(PH1_GPIO_Port, PH1_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(PH2_GPIO_Port, PH2_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+	bldc_motor_Config_Channel_Init();
+
+	__HAL_TIM_SET_AUTORELOAD(bldc.tim_com, ARR_TIM3_VALUE);
+
+	HAL_TIM_Base_Start(bldc.tim_com);
+	HAL_TIMEx_ConfigCommutationEvent_IT(bldc.tim_pwm, TIM_TS_ITR2, TIM_COMMUTATION_TRGI);
 }
 
-void Delay(volatile uint32_t delay) {
-    while (delay--) {
-        __asm("nop");
-    }
-}
-
-void Spin_Motor(void) {
-    while (1) {
-        bldc_motor_six_step_algorithm();
-        HAL_Delay(1); // Adjust the delay for the desired motor speed
 
 
-    }
-}
-
-void Motor_Stop(void)
+void bldc_motor_set_speed(uint32_t speed, uint32_t dir)
 {
-    // Stop PWM signals
-    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+	if(speed > BLDC_MOTOR_MAX_SPEED)
+	{
+		bldc.speed_pulse = BLDC_MOTOR_MAX_SPEED;
+	}
+	else
+	{
+		bldc.speed_pulse = speed;
+	}
+
+	bldc.dir = dir;
 }
 
-void Motor_SetSpeed(uint16_t speed)
+
+
+//void Spin_Motor(void) {
+//    while (1) {
+//        bldc_motor_six_step_algorithm();
+////        HAL_Delay(2); // Adjust the delay for the desired motor speed
+//
+//    }
+//}
+//
+//void Motor_Stop(void)
+//{
+//    // Stop PWM signals
+//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+//}
+
+//void Motor_SetSpeed(uint16_t speed)
+//{
+//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
+//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
+//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+//}
+
+
+void bldc_motor_Config_Channel_Init(void)
 {
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
+	bldc.sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	bldc.sConfigOC.Pulse = 0;
+	bldc.sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	bldc.sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+	bldc.sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+	bldc.sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+	bldc.sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
 }
 
 void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel)
@@ -152,6 +205,7 @@ void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel)
     HAL_TIM_PWM_ConfigChannel(bldc.tim_pwm, &bldc.sConfigOC, channel);
 
     HAL_TIM_PWM_Start(bldc.tim_pwm, channel);
+	HAL_TIMEx_PWMN_Start(bldc.tim_pwm, channel);
 }
 
 void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
@@ -160,6 +214,7 @@ void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
     HAL_TIM_OC_ConfigChannel(bldc.tim_pwm, &bldc.sConfigOC, channel);
 
     HAL_TIM_OC_Stop(bldc.tim_pwm, channel);
+	HAL_TIMEx_OCN_Start(bldc.tim_pwm, channel);
 }
 
 void bldc_motor_six_step_algorithm(void)
