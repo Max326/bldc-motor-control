@@ -212,6 +212,19 @@ void TIM1_TRG_COM_TIM11_IRQHandler(void)
   /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
 }
 
+/**
+  * @brief This function handles FPU global interrupt.
+  */
+void FPU_IRQHandler(void)
+{
+  /* USER CODE BEGIN FPU_IRQn 0 */
+
+  /* USER CODE END FPU_IRQn 0 */
+  /* USER CODE BEGIN FPU_IRQn 1 */
+
+  /* USER CODE END FPU_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
