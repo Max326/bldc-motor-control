@@ -89,13 +89,11 @@
 
 // from tutorial
 
-BLDC_Motor bldc;
+struct BLDC_Motor bldc;
 
 #define ARR_TIM3_VALUE			100
 #define BLDC_MOTOR_MAX_SPEED	100
 
-#define CW 		1
-#define CCW 	-1
 
 //void Motor_Start(void)
 //{
@@ -147,7 +145,7 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 
 
 
-void bldc_motor_set_speed(uint32_t speed, uint32_t dir)
+void bldc_motor_set_speed(uint32_t speed, direction dir)
 {
 	if(speed > BLDC_MOTOR_MAX_SPEED)
 	{

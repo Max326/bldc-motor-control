@@ -43,8 +43,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define CW 		1
-#define CCW 	-1
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -110,15 +109,17 @@ int main(void)
 
 
 //  Motor_Start();
-//  printf("Motor_Start called\n");
+
 
   uint32_t time = HAL_GetTick();
   uint32_t max_time = 3000;
   uint32_t dir = CW;
-  uint32_t speed = 10;
+  uint32_t speed = 50;
 
   bldc_motor_init(&htim1, &htim3);
   bldc_motor_set_speed(speed, dir);
+
+  printf("motor initialized\n");
 
 //  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
@@ -149,7 +150,7 @@ int main(void)
 //	}
 //
 //
-//	HAL_Delay(1000);
+//	HAL_Delay(200);
 
 	if((HAL_GetTick() - time) > max_time)
 	{
@@ -161,7 +162,9 @@ int main(void)
 			dir = CW;
 
 		bldc_motor_set_speed(speed, dir);
+
 	}
+
 
 //	Spin_Motor();
 //
