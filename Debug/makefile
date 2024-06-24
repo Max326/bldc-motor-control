@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (10.3-2021.10)
+# Toolchain: GNU Tools for STM32 (12.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -60,8 +60,8 @@ all: main-build
 main-build: bldc-motor-control.elf secondary-outputs
 
 # Tool invocations
-bldc-motor-control.elf bldc-motor-control.map: $(OBJS) $(USER_OBJS) /home/max/Projects/cube_12_v4/bldc-motor-control/STM32F411VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "bldc-motor-control.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/max/Projects/cube_12_v4/bldc-motor-control/STM32F411VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="bldc-motor-control.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+bldc-motor-control.elf bldc-motor-control.map: $(OBJS) $(USER_OBJS) /home/tomekt/projects/MARM/SWIS/bldc-motor-control/STM32F411VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "bldc-motor-control.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/tomekt/projects/MARM/SWIS/bldc-motor-control/STM32F411VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="bldc-motor-control.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

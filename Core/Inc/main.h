@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define DBG_Pin GPIO_PIN_1
+#define DBG_GPIO_Port GPIOC
 #define PWM1EN_Pin GPIO_PIN_12
 #define PWM1EN_GPIO_Port GPIOB
 #define PWM2EN_Pin GPIO_PIN_13

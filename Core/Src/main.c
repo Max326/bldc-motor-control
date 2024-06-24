@@ -80,6 +80,7 @@ static void MX_TIM3_Init(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -111,14 +112,14 @@ int main(void)
 //  Motor_Start();
 
 
-  uint32_t time = HAL_GetTick();
-  uint32_t max_time = 3000;
-  uint32_t dir = CW;
-  uint32_t speed = 50;
+  //uint32_t time = HAL_GetTick();
+  //uint32_t max_time = 30000;
+  //uint32_t dir = CW;
+  uint32_t speed = 30;
 
   bldc_motor_init(&htim1, &htim3);
-  bldc_motor_set_speed(speed, dir);
-
+  bldc_motor_set_speed(speed);
+  //HAL_GPIO_TogglePin(DBG_GPIO_Port, DBG_Pin);
   printf("motor initialized\n");
 
 //  HAL_ADC_Start(&hadc1);
@@ -132,53 +133,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+	//just debug:
+
 	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
 
 
-//	HAL_ADC_Start(&hadc1);
-////	pot = HAL_ADC_GetValue(&hadc1);
-////	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-////	printf("dupa %lu\n", pot);
-//
-//
-//	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
-//		pot = HAL_ADC_GetValue(&hadc1);
-//		printf("Potentiometer value: %lu\n", pot);
-//	} else {
-//		printf("ADC PollForConversion failed\n");
-//	}
-//
-//
-//	HAL_Delay(200);
-
- 	printf("loop went oop\n");
-
-	if((HAL_GetTick() - time) > max_time)
-	{
-		time = HAL_GetTick();
-
-		if(CW == dir)
-			dir = CCW;
-		else if(CCW == dir)
-			dir = CW;
-
-		bldc_motor_set_speed(speed, dir);
-
-	}
-
-
-//	Spin_Motor();
-//
-
-	  // working adc
-//	  HAL_ADC_Start(&hadc1);
-//	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-//
-//	  uint32_t value = HAL_ADC_GetValue(&hadc1);
-//	  printf("ADC = %lu\n", value);
-//
-//	  HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
@@ -302,7 +262,7 @@ static void MX_TIM1_Init(void)
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 42-1;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 100-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
@@ -339,7 +299,7 @@ static void MX_TIM1_Init(void)
   sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE;
   sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;
   sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 16;
+  sBreakDeadTimeConfig.DeadTime = 0;
   sBreakDeadTimeConfig.BreakState = TIM_BREAK_ENABLE;
   sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
   sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_ENABLE;
@@ -382,8 +342,8 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
@@ -447,16 +407,26 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DBG_GPIO_Port, DBG_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PWM1EN_Pin|PWM2EN_Pin|PWM3EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, LD3_Pin|LDN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : DBG_Pin */
+  GPIO_InitStruct.Pin = DBG_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DBG_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PWM1EN_Pin PWM2EN_Pin PWM3EN_Pin */
   GPIO_InitStruct.Pin = PWM1EN_Pin|PWM2EN_Pin|PWM3EN_Pin;
@@ -480,7 +450,10 @@ static void MX_GPIO_Init(void)
 
 void HAL_TIMEx_CommutCallback(TIM_HandleTypeDef *htim)
 {
+	HAL_GPIO_TogglePin(DBG_GPIO_Port, DBG_Pin);
+	printf("\nCommutation interrupt triggered\n");
 	bldc_motor_six_step_algorithm();
+	HAL_GPIO_TogglePin(DBG_GPIO_Port, DBG_Pin);
 }
 
 int __io_putchar(int ch)
@@ -495,100 +468,6 @@ int __io_putchar(int ch)
 }
 
 
-// maybe later
-
-///* GPIO init function */
-//static void MX_GPIO_Init(void)
-//{
-//  GPIO_InitTypeDef GPIO_InitStruct = {0};
-//
-//  __HAL_RCC_GPIOC_CLK_ENABLE();
-//  __HAL_RCC_GPIOH_CLK_ENABLE();
-//  __HAL_RCC_GPIOA_CLK_ENABLE();
-//  __HAL_RCC_GPIOB_CLK_ENABLE();
-//
-//  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-//
-//  GPIO_InitStruct.Pin = GPIO_PIN_13;
-//  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//  GPIO_InitStruct.Pull = GPIO_NOPULL;
-//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-//}
-//
-///* TIM1 init function */
-//static void MX_TIM1_Init(void)
-//{
-//  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-//  TIM_MasterConfigTypeDef sMasterConfig = {0};
-//  TIM_OC_InitTypeDef sConfigOC = {0};
-//
-//  htim1.Instance = TIM1;
-//  htim1.Init.Prescaler = 0;
-//  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-//  htim1.Init.Period = 8399;
-//  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-//  htim1.Init.RepetitionCounter = 0;
-//  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-//  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-//  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-//  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-//  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-//  sConfigOC.Pulse = 4199;
-//  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-//  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-//  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  HAL_TIM_MspPostInit(&htim1);
-//}
-//
-///* ADC1 init function */
-//static void MX_ADC1_Init(void)
-//{
-//  ADC_ChannelConfTypeDef sConfig = {0};
-//  hadc1.Instance = ADC1;
-//  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-//  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-//  hadc1.Init.ScanConvMode = DISABLE;
-//  hadc1.Init.ContinuousConvMode = DISABLE;
-//  hadc1.Init.DiscontinuousConvMode = DISABLE;
-//  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-//  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1;
-//  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-//  hadc1.Init.NbrOfConversion = 1;
-//  hadc1.Init.DMAContinuousRequests = DISABLE;
-//  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-//  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sConfig.Channel = ADC_CHANNEL_10;
-//  sConfig.Rank = 1;
-//  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-//  sConfig.Offset = 0;
-//  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//}
 
 
 /* USER CODE END 4 */

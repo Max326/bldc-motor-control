@@ -1,6 +1,7 @@
-../Core/Src/motor_control.c:125:6:bldc_motor_init	16	static
-../Core/Src/motor_control.c:148:6:bldc_motor_set_speed	16	static
-../Core/Src/motor_control.c:188:6:bldc_motor_Config_Channel_Init	4	static
-../Core/Src/motor_control.c:199:6:bldc_motor_PWM_Config_Channel	16	static
-../Core/Src/motor_control.c:209:6:bldc_motor_OC_Config_Channel	16	static
-../Core/Src/motor_control.c:218:6:bldc_motor_six_step_algorithm	8	static
+../Core/Src/motor_control.c:18:6:bldc_motor_init	16	static
+../Core/Src/motor_control.c:41:6:bldc_motor_six_step_algorithm	8	static
+../Core/Src/motor_control.c:106:6:bldc_motor_PWM_Stop_Channel	16	static
+../Core/Src/motor_control.c:112:6:bldc_motor_set_speed	16	static
+../Core/Src/motor_control.c:130:6:bldc_motor_Config_Channel_Init	4	static
+../Core/Src/motor_control.c:141:6:bldc_motor_PWM_Config_Channel	16	static
+../Core/Src/motor_control.c:151:6:bldc_motor_OC_Config_Channel	16	static
