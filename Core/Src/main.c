@@ -111,13 +111,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-//  Motor_Start();
-
-
   uint32_t time = HAL_GetTick();
   uint32_t max_time = 3000;
   uint32_t dir = CW;
-  uint32_t speed = 75;
+  uint32_t speed = 50;
 
   bldc_motor_init(&htim1, &htim3);
   bldc_motor_set_speed(speed, dir);
@@ -144,9 +141,6 @@ int main(void)
 
 
 	HAL_ADC_Start(&hadc1);
-//	pot = HAL_ADC_GetValue(&hadc1);
-//	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-//	printf("dupa %lu\n", pot);
 
 
 	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
@@ -155,8 +149,8 @@ int main(void)
 	} else {
 		printf("ADC PollForConversion failed\n");
 	}
-//
-//
+
+
 	HAL_Delay(200);
 
 
@@ -174,17 +168,6 @@ int main(void)
 //	}
 
 
-//	Spin_Motor();
-//
-
-	  // working adc
-//	  HAL_ADC_Start(&hadc1);
-//	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-//
-//	  uint32_t value = HAL_ADC_GetValue(&hadc1);
-//	  printf("ADC = %lu\n", value);
-//
-//	  HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
@@ -544,7 +527,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = LD3_Pin|LD4_Pin|LD5_Pin|LDN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */

@@ -22,69 +22,6 @@
 //    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 //}
 //
-//void Delay(volatile uint32_t delay) {
-//    while (delay--) {
-//        __asm("nop");
-//    }
-//}
-//
-//
-//void Spin_Motor(void) {
-//    uint16_t speed = 50; // Example speed (duty cycle)
-//    while (1) {
-//        // Commutation state 1: A+ B- Cx
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-//        HAL_Delay(1);
-//
-//        // Commutation state 2: A+ Bx C-
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-//        HAL_Delay(1);
-//
-//        // Commutation state 3: Ax B+ C-
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-//        HAL_Delay(1);
-//
-//        // Commutation state 4: A- B+ Cx
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-//        HAL_Delay(1);
-//
-//        // Commutation state 5: A- Bx C+
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-//        HAL_Delay(1);
-//
-//        // Commutation state 6: Ax B- C+
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-//        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-//        HAL_Delay(1);
-//    }
-//}
-//
-//
-//void Motor_Stop(void)
-//{
-//    // Stop PWM signals
-//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
-//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
-//}
-//
-//void Motor_SetSpeed(uint16_t speed)
-//{
-//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-//}
 
 
 // from tutorial
@@ -138,6 +75,10 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 	HAL_TIM_Base_Start(bldc.tim_com);
 	HAL_TIMEx_ConfigCommutationEvent_IT(bldc.tim_pwm, TIM_TS_ITR2, TIM_COMMUTATION_TRGI);
 
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+
 
 	// ???
 //	bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
@@ -163,15 +104,6 @@ void bldc_motor_set_speed(uint32_t speed, direction dir)
 }
 
 
-
-//void Spin_Motor(void) {
-//    while (1) {
-//        bldc_motor_six_step_algorithm();
-////        HAL_Delay(2); // Adjust the delay for the desired motor speed
-//
-//    }
-//}
-//
 //void Motor_Stop(void)
 //{
 //    // Stop PWM signals
@@ -180,12 +112,6 @@ void bldc_motor_set_speed(uint32_t speed, direction dir)
 //    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
 //}
 
-//void Motor_SetSpeed(uint16_t speed)
-//{
-//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-//    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speed);
-//}
 
 
 void bldc_motor_Config_Channel_Init(void)
@@ -222,6 +148,14 @@ void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
 }
 
 
+void bldc_motor_set_pwm(uint16_t speedA, uint16_t speedB, uint16_t speedC)
+{
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speedA);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, speedB);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speedC);
+}
+
+
 
 void bldc_motor_six_step_algorithm(void)
 {
@@ -236,11 +170,12 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
         	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_RESET);
 
+        	bldc_motor_set_pwm(bldc.speed_pulse, 0, 0);
 
 //            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
             break;
         case 2:
         	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, SET);
@@ -251,13 +186,13 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
+        	bldc_motor_set_pwm(bldc.speed_pulse, 0, 0);
+
 //			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
-//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+
             break;
         case 3:
         	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
@@ -269,13 +204,14 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
 
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-//			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+        	bldc_motor_set_pwm(0, bldc.speed_pulse, 0);
+
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+////			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+
+
             break;
         case 4:
         	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
@@ -286,13 +222,12 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_RESET);
 
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+        	bldc_motor_set_pwm(0, bldc.speed_pulse, bldc.speed_pulse);
 
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+
             break;
         case 5:
         	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
@@ -304,12 +239,13 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
 
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
-//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
+        	bldc_motor_set_pwm(0, bldc.speed_pulse, bldc.speed_pulse);
+
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+
+
             break;
         case 6:
         	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
@@ -320,13 +256,11 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
-			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+        	bldc_motor_set_pwm(0, 0, bldc.speed_pulse);
 
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
-//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
+//			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
             break;
     }
 
@@ -344,53 +278,5 @@ void bldc_motor_six_step_algorithm(void)
     }
 }
 
-//void bldc_motor_six_step_algorithm(void)
-//{
-//	switch (bldc.step_number)
-//	{
-//		case 1:
-//			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1, bldc.speed_pulse);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-//			break;
-//		case 2:
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, bldc.speed_pulse);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-//			break;
-//		case 3:
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, bldc.speed_pulse);
-//			break;
-//		case 4:
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, bldc.speed_pulse);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-//			break;
-//		case 5:
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, bldc.speed_pulse);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-//			break;
-//		case 6:
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
-//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, bldc.speed_pulse);
-//			break;
-//	}
-//
-//	if (bldc.dir == 1)  // CW direction
-//	{
-//		bldc.step_number++;
-//		if (bldc.step_number > 6)
-//			bldc.step_number = 1;
-//	}
-//	else if (bldc.dir == 0)  // CCW direction
-//	{
-//		bldc.step_number--;
-//		if (bldc.step_number < 1)
-//			bldc.step_number = 6;
-//	}
-//}
+
 
