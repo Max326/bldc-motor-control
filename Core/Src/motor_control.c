@@ -124,10 +124,6 @@ struct BLDC_Motor bldc;
 
 void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 {
-	HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
-
 	bldc.tim_pwm = _tim_pwm;
 	bldc.tim_com = _tim_com;
 
@@ -141,6 +137,13 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 
 	HAL_TIM_Base_Start(bldc.tim_com);
 	HAL_TIMEx_ConfigCommutationEvent_IT(bldc.tim_pwm, TIM_TS_ITR2, TIM_COMMUTATION_TRGI);
+
+
+	// ???
+//	bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
+//	bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
+//	bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
+
 }
 
 
@@ -194,6 +197,9 @@ void bldc_motor_Config_Channel_Init(void)
 	bldc.sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 	bldc.sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
 	bldc.sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+
+//	__HAL_TIM_ENABLE_IT(&htim1, TIM_IT_CC1|TIM_IT_CC3|TIM_IT_CC4);
+
 }
 
 void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel)
@@ -203,7 +209,7 @@ void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel)
     HAL_TIM_PWM_ConfigChannel(bldc.tim_pwm, &bldc.sConfigOC, channel);
 
     HAL_TIM_PWM_Start(bldc.tim_pwm, channel);
-	HAL_TIMEx_PWMN_Start(bldc.tim_pwm, channel);
+//	HAL_TIMEx_PWMN_Start(bldc.tim_pwm, channel);
 }
 
 void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
@@ -212,42 +218,115 @@ void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
     HAL_TIM_OC_ConfigChannel(bldc.tim_pwm, &bldc.sConfigOC, channel);
 
     HAL_TIM_OC_Stop(bldc.tim_pwm, channel);
-	HAL_TIMEx_OCN_Start(bldc.tim_pwm, channel);
+//	HAL_TIMEx_OCN_Start(bldc.tim_pwm, channel);
 }
+
+
 
 void bldc_motor_six_step_algorithm(void)
 {
     switch (bldc.step_number)
     {
         case 1:
-            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_2);
+        	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, SET);
+        	HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, RESET);
+        	HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, RESET);
+
+        	HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+        	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_RESET);
+
+
+//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
+            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
             bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
             break;
         case 2:
-            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_2);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+        	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, SET);
+			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, RESET);
+			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, RESET);
+
+			HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+
+//			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
             break;
         case 3:
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_2);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+        	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
+			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, SET);
+			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, RESET);
+
+			HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+
+
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+//			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
             break;
         case 4:
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_2);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+        	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
+			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, SET);
+			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, SET);
+
+			HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_RESET);
+
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
             break;
         case 5:
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_2);
-            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
+        	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
+			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, SET);
+			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, SET);
+
+			HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+
+
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
+//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
             break;
         case 6:
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
-            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_2);
-            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
+        	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, RESET);
+			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, RESET);
+			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, SET);
+
+			HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
+			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
+
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
+//            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
+//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_3);
             break;
     }
 
@@ -264,4 +343,54 @@ void bldc_motor_six_step_algorithm(void)
             bldc.step_number = 6;
     }
 }
+
+//void bldc_motor_six_step_algorithm(void)
+//{
+//	switch (bldc.step_number)
+//	{
+//		case 1:
+//			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1, bldc.speed_pulse);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+//			break;
+//		case 2:
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, bldc.speed_pulse);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+//			break;
+//		case 3:
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, bldc.speed_pulse);
+//			break;
+//		case 4:
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, bldc.speed_pulse);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+//			break;
+//		case 5:
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, bldc.speed_pulse);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+//			break;
+//		case 6:
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+//			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, bldc.speed_pulse);
+//			break;
+//	}
+//
+//	if (bldc.dir == 1)  // CW direction
+//	{
+//		bldc.step_number++;
+//		if (bldc.step_number > 6)
+//			bldc.step_number = 1;
+//	}
+//	else if (bldc.dir == 0)  // CCW direction
+//	{
+//		bldc.step_number--;
+//		if (bldc.step_number < 1)
+//			bldc.step_number = 6;
+//	}
+//}
 

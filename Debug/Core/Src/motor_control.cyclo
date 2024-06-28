@@ -1,6 +1,6 @@
 motor_control.c:125:6:bldc_motor_init	1
-motor_control.c:148:6:bldc_motor_set_speed	2
-motor_control.c:188:6:bldc_motor_Config_Channel_Init	1
-motor_control.c:199:6:bldc_motor_PWM_Config_Channel	1
-motor_control.c:209:6:bldc_motor_OC_Config_Channel	1
-motor_control.c:218:6:bldc_motor_six_step_algorithm	11
+motor_control.c:151:6:bldc_motor_set_speed	2
+motor_control.c:191:6:bldc_motor_Config_Channel_Init	1
+motor_control.c:205:6:bldc_motor_PWM_Config_Channel	1
+motor_control.c:215:6:bldc_motor_OC_Config_Channel	1
+motor_control.c:226:6:bldc_motor_six_step_algorithm	11
