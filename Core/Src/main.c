@@ -115,6 +115,9 @@ int main(void)
   uint32_t max_time = 3000;
   uint32_t dir = CW;
   uint32_t speed = 50;
+  uint32_t max_speed = 100;
+
+  uint32_t pot_max = 4095;
 
   bldc_motor_init(&htim1, &htim3);
   bldc_motor_set_speed(speed, dir);
@@ -145,13 +148,21 @@ int main(void)
 
 	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
 		pot = HAL_ADC_GetValue(&hadc1);
-		printf("Potentiometer value: %lu\n", pot);
+//		printf("Potentiometer value: %lu\n", pot);
 	} else {
 		printf("ADC PollForConversion failed\n");
 	}
 
 
 	HAL_Delay(200);
+
+	float pot_ratio = (float)pot / (float)pot_max;
+	int new_speed = (int)(pot_ratio * max_speed);
+
+	bldc_motor_set_speed(new_speed, dir);
+
+	printf("New speed: %lu\n", new_speed);
+
 
 
 //	if((HAL_GetTick() - time) > max_time)
