@@ -111,13 +111,15 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-  uint32_t time = HAL_GetTick();
-  uint32_t max_time = 3000;
+//  uint32_t time = HAL_GetTick();
+//  uint32_t max_time = 3000;
   uint32_t dir = CW;
   uint32_t speed = 50;
   uint32_t max_speed = 100;
 
   uint32_t pot_max = 4095;
+
+  was_button_pressed = false;
 
   bldc_motor_init(&htim1, &htim3);
   bldc_motor_set_speed(speed, dir);
@@ -154,31 +156,27 @@ int main(void)
 	}
 
 
-	HAL_Delay(200);
+	HAL_Delay(10);
 
 	float pot_ratio = (float)pot / (float)pot_max;
 	int new_speed = (int)(pot_ratio * max_speed);
 
-	bldc_motor_set_speed(new_speed, dir);
+    check_button_press();
 
-	printf("New speed: %lu\n", new_speed);
+    if (was_button_pressed)
+    {
+    	if (dir == CW){
+    		dir = CCW;
+    		printf("dir change to ccw \n");
+    	} else {
+    		dir = CW;
+    		printf("dir change to cw \n");
+    	}
+    }
 
-
-
-//	if((HAL_GetTick() - time) > max_time)
-//	{
-//		time = HAL_GetTick();
-//
-//		if(CW == dir)
-//			dir = CCW;
-//		else if(CCW == dir)
-//			dir = CW;
-//
-//		bldc_motor_set_speed(speed, dir);
-//
-//	}
-
-
+    if (bldc_motor_set_speed(new_speed, dir)){
+    	printf("New speed: %i\n", new_speed);
+    }
   }
   /* USER CODE END 3 */
 }
@@ -268,7 +266,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Channel = ADC_CHANNEL_6;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -526,6 +524,12 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, LD3_Pin|LD4_Pin|LD5_Pin|LDN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : BUTTON_Pin */
+  GPIO_InitStruct.Pin = BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PWM1EN_Pin PWM2EN_Pin PWM3EN_Pin */
   GPIO_InitStruct.Pin = PWM1EN_Pin|PWM2EN_Pin|PWM3EN_Pin;

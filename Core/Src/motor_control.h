@@ -10,6 +10,9 @@
 
 #include "main.h"
 
+#include <stdbool.h>
+
+
 //extern TIM_HandleTypeDef htim1;  // Declare htim1 as extern
 //
 ////void Motor_Init(void);
@@ -54,7 +57,10 @@ void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel);
 void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel);
 void bldc_motor_six_step_algorithm(void);
 
-void bldc_motor_set_speed(uint32_t speed, direction dir);
+extern bool was_button_pressed;
+void check_button_press();
+
+bool bldc_motor_set_speed(uint32_t speed, direction dir);
 
 
 #endif /* SRC_MOTOR_CONTROL_H_ */
