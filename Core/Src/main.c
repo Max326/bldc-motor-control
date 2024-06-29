@@ -122,9 +122,12 @@ int main(void)
   was_button_pressed = false;
 
   bldc_motor_init(&htim1, &htim3);
-  bldc_motor_set_speed(speed, dir);
+  bldc_motor_set_speed(speed);
+  MotorSetDir(dir);
 
   printf("motor initialized\n");
+
+  MotorStart(speed);
 
 //  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
@@ -140,11 +143,6 @@ int main(void)
 //	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
 
-
-//	bldc_motor_six_step_algorithm();
-//	HAL_Delay(100);
-
-
 	HAL_ADC_Start(&hadc1);
 
 
@@ -156,7 +154,7 @@ int main(void)
 	}
 
 
-	HAL_Delay(10);
+	HAL_Delay(10); // for printfs to be readable
 
 	float pot_ratio = (float)pot / (float)pot_max;
 	int new_speed = (int)(pot_ratio * max_speed);
@@ -165,16 +163,10 @@ int main(void)
 
     if (was_button_pressed)
     {
-    	if (dir == CW){
-    		dir = CCW;
-    		printf("dir change to ccw \n");
-    	} else {
-    		dir = CW;
-    		printf("dir change to cw \n");
-    	}
+    	MotorDirChange();
     }
 
-    if (bldc_motor_set_speed(new_speed, dir)){
+    if (bldc_motor_set_speed(new_speed)){ // check if set speed has changed
     	printf("New speed: %i\n", new_speed);
     }
   }

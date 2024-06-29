@@ -42,6 +42,7 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 	bldc.step_number = 1;
 	bldc.speed_pulse = 0;
 	bldc.dir = CW;
+	bldc.speed_change_delay = 50;
 
 	bldc_motor_Config_Channel_Init();
 
@@ -57,7 +58,7 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 
 
 
-bool bldc_motor_set_speed(uint32_t speed, direction dir)
+bool bldc_motor_set_speed(uint32_t speed)
 {
 	bool is_speed_changed = false;
 
@@ -70,23 +71,27 @@ bool bldc_motor_set_speed(uint32_t speed, direction dir)
 		if (bldc.speed_pulse != speed){
 			is_speed_changed = true;
 		}
+//		if (speed > bldc.speed_pulse){
+//			while (bldc.speed_pulse <= speed){
+//				bldc.speed_pulse++;
+//				HAL_Delay(bldc.speed_change_delay);
+//			}
+//		}
+//		else {
+//			while (bldc.speed_pulse >= speed){
+//				bldc.speed_pulse--;
+//				HAL_Delay(bldc.speed_change_delay);
+//			}
+//		}
 		bldc.speed_pulse = speed;
 	}
-
-	bldc.dir = dir;
 
 	return is_speed_changed;
 }
 
-
-//void Motor_Stop(void)
-//{
-//    // Stop PWM signals
-//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
-//    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
-//}
-
+void MotorSetDir(direction dir){
+	bldc.dir = dir;
+}
 
 
 void bldc_motor_Config_Channel_Init(void)
@@ -121,6 +126,31 @@ void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
     HAL_TIM_OC_Stop(bldc.tim_pwm, channel);
 //	HAL_TIMEx_OCN_Start(bldc.tim_pwm, channel);
 }
+
+void MotorStart(int speed){
+	int delay = 50;
+	while(bldc.speed_pulse <= speed){
+		bldc.speed_pulse++;
+		HAL_Delay(delay);
+	}
+}
+
+void MotorDirChange(){
+	int old_speed = bldc.speed_pulse;
+	int delay = 50;
+
+	while(bldc.speed_pulse > 0){
+		bldc.speed_pulse--;
+		HAL_Delay(delay);
+	}
+	if (bldc.dir == CW){
+		bldc.dir = CCW;
+	} else {
+		bldc.dir = CW;
+	}
+	MotorStart(old_speed);
+}
+
 
 
 void bldc_motor_set_pwm(uint16_t speedA, uint16_t speedB, uint16_t speedC)

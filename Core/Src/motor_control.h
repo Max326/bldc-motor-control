@@ -38,6 +38,7 @@ struct BLDC_Motor {
     uint8_t step_number;
     uint32_t speed_pulse;
     uint32_t dir;
+    uint32_t speed_change_delay;
 
 	TIM_HandleTypeDef	*tim_com;
     TIM_HandleTypeDef	*tim_pwm;
@@ -60,7 +61,9 @@ void bldc_motor_six_step_algorithm(void);
 extern bool was_button_pressed;
 void check_button_press();
 
-bool bldc_motor_set_speed(uint32_t speed, direction dir);
-
+bool bldc_motor_set_speed(uint32_t speed);
+void MotorStart(int speed);
+void MotorDirChange();
+void MotorSetDir(direction dir);
 
 #endif /* SRC_MOTOR_CONTROL_H_ */
