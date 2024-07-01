@@ -59,10 +59,10 @@ struct BLDC_Motor bldc;
 ////	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 //}
 
-void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
+void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm)
 {
 	bldc.tim_pwm = _tim_pwm;
-	bldc.tim_com = _tim_com;
+	//bldc.tim_com = _tim_com;
 
 	bldc.step_number = 1;
 	bldc.speed_pulse = 0;
@@ -70,10 +70,10 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 
 	bldc_motor_Config_Channel_Init();
 
-	__HAL_TIM_SET_AUTORELOAD(bldc.tim_com, ARR_TIM3_VALUE);
+	//__HAL_TIM_SET_AUTORELOAD(bldc.tim_com, ARR_TIM3_VALUE);
 
-	HAL_TIM_Base_Start(bldc.tim_com);
-	HAL_TIMEx_ConfigCommutationEvent_IT(bldc.tim_pwm, TIM_TS_ITR2, TIM_COMMUTATION_TRGI);
+	//HAL_TIM_Base_Start(bldc.tim_com);
+	//HAL_TIMEx_ConfigCommutationEvent_IT(bldc.tim_pwm, TIM_TS_ITR2, TIM_COMMUTATION_TRGI);
 
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);

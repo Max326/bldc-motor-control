@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -50,11 +51,35 @@
 ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart6;
 
+/* Definitions for Spin */
+osThreadId_t SpinHandle;
+const osThreadAttr_t Spin_attributes = {
+  .name = "Spin",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Speed */
+osThreadId_t SpeedHandle;
+const osThreadAttr_t Speed_attributes = {
+  .name = "Speed",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Init */
+osThreadId_t InitHandle;
+const osThreadAttr_t Init_attributes = {
+  .name = "Init",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+/* Definitions for Motor */
+osMutexId_t MotorHandle;
+const osMutexAttr_t Motor_attributes = {
+  .name = "Motor"
+};
 /* USER CODE BEGIN PV */
 uint32_t pot;
 /* USER CODE END PV */
@@ -65,8 +90,10 @@ static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART6_UART_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_TIM3_Init(void);
-static void MX_TIM2_Init(void);
+void SpinMotor(void *argument);
+void ChangeSpeed(void *argument);
+void InitMotor(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -82,6 +109,7 @@ static void MX_TIM2_Init(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -106,8 +134,6 @@ int main(void)
   MX_ADC1_Init();
   MX_USART6_UART_Init();
   MX_TIM1_Init();
-  MX_TIM3_Init();
-  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -119,13 +145,58 @@ int main(void)
 
   uint32_t pot_max = 4095;
 
-  bldc_motor_init(&htim1, &htim3);
+ // bldc_motor_init(&htim1, &htim3);
   bldc_motor_set_speed(speed, dir);
 
   printf("motor initialized\n");
 
 //  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of Motor */
+  MotorHandle = osMutexNew(&Motor_attributes);
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of Spin */
+  SpinHandle = osThreadNew(SpinMotor, NULL, &Spin_attributes);
+
+  /* creation of Speed */
+  SpeedHandle = osThreadNew(ChangeSpeed, NULL, &Speed_attributes);
+
+  /* creation of Init */
+  InitHandle = osThreadNew(InitMotor, NULL, &Init_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -136,32 +207,32 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 //	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
+	//HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
 
 
 //	bldc_motor_six_step_algorithm();
 //	HAL_Delay(100);
 
 
-	HAL_ADC_Start(&hadc1);
+	//HAL_ADC_Start(&hadc1);
 
 
-	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
-		pot = HAL_ADC_GetValue(&hadc1);
+	//if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
+		//pot = HAL_ADC_GetValue(&hadc1);
 //		printf("Potentiometer value: %lu\n", pot);
-	} else {
-		printf("ADC PollForConversion failed\n");
-	}
+	//} else {
+	//	printf("ADC PollForConversion failed\n");
+	//}
 
 
-	HAL_Delay(200);
+	//HAL_Delay(200);
 
-	float pot_ratio = (float)pot / (float)pot_max;
-	int new_speed = (int)(pot_ratio * max_speed);
+	//float pot_ratio = (float)pot / (float)pot_max;
+	//int new_speed = (int)(pot_ratio * max_speed);
 
-	bldc_motor_set_speed(new_speed, dir);
+	//bldc_motor_set_speed(new_speed, dir);
 
-	printf("New speed: %lu\n", new_speed);
+	//printf("New speed: %lu\n", new_speed);
 
 
 
@@ -355,122 +426,6 @@ static void MX_TIM1_Init(void)
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_TOGGLE;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-  HAL_TIM_MspPostInit(&htim2);
-
-}
-
-/**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM3_Init(void)
-{
-
-  /* USER CODE BEGIN TIM3_Init 0 */
-
-  /* USER CODE END TIM3_Init 0 */
-
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM3_Init 1 */
-
-  /* USER CODE END TIM3_Init 1 */
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 4200-1;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 1000-1;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_OC_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM3_Init 2 */
-
-  /* USER CODE END TIM3_Init 2 */
-
-}
-
-/**
   * @brief USART6 Initialization Function
   * @param None
   * @retval None
@@ -547,10 +502,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_TIMEx_CommutCallback(TIM_HandleTypeDef *htim)
-{
-	bldc_motor_six_step_algorithm();
-}
 
 int __io_putchar(int ch)
 {
@@ -564,103 +515,106 @@ int __io_putchar(int ch)
 }
 
 
-// maybe later
-
-///* GPIO init function */
-//static void MX_GPIO_Init(void)
-//{
-//  GPIO_InitTypeDef GPIO_InitStruct = {0};
-//
-//  __HAL_RCC_GPIOC_CLK_ENABLE();
-//  __HAL_RCC_GPIOH_CLK_ENABLE();
-//  __HAL_RCC_GPIOA_CLK_ENABLE();
-//  __HAL_RCC_GPIOB_CLK_ENABLE();
-//
-//  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-//
-//  GPIO_InitStruct.Pin = GPIO_PIN_13;
-//  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//  GPIO_InitStruct.Pull = GPIO_NOPULL;
-//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-//}
-//
-///* TIM1 init function */
-//static void MX_TIM1_Init(void)
-//{
-//  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-//  TIM_MasterConfigTypeDef sMasterConfig = {0};
-//  TIM_OC_InitTypeDef sConfigOC = {0};
-//
-//  htim1.Instance = TIM1;
-//  htim1.Init.Prescaler = 0;
-//  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-//  htim1.Init.Period = 8399;
-//  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-//  htim1.Init.RepetitionCounter = 0;
-//  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-//  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-//  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-//  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-//  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-//  sConfigOC.Pulse = 4199;
-//  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-//  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-//  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  HAL_TIM_MspPostInit(&htim1);
-//}
-//
-///* ADC1 init function */
-//static void MX_ADC1_Init(void)
-//{
-//  ADC_ChannelConfTypeDef sConfig = {0};
-//  hadc1.Instance = ADC1;
-//  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-//  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-//  hadc1.Init.ScanConvMode = DISABLE;
-//  hadc1.Init.ContinuousConvMode = DISABLE;
-//  hadc1.Init.DiscontinuousConvMode = DISABLE;
-//  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-//  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1;
-//  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-//  hadc1.Init.NbrOfConversion = 1;
-//  hadc1.Init.DMAContinuousRequests = DISABLE;
-//  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-//  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sConfig.Channel = ADC_CHANNEL_10;
-//  sConfig.Rank = 1;
-//  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-//  sConfig.Offset = 0;
-//  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//}
 
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_SpinMotor */
+/**
+  * @brief  Function implementing the Spin thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_SpinMotor */
+void SpinMotor(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+	  if(osMutexAcquire(MotorHandle, osWaitForever)==osOK){
+
+		  //logic for spinning the motor here
+
+		  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, SET);
+		  bldc_motor_six_step_algorithm();
+		  osMutexRelease(MotorHandle);
+		  osDelay(2000);
+	  }
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_ChangeSpeed */
+/**
+* @brief Function implementing the Speed thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ChangeSpeed */
+void ChangeSpeed(void *argument)
+{
+  /* USER CODE BEGIN ChangeSpeed */
+  /* Infinite loop */
+  for(;;)
+  {
+	  // if button pressed then:
+	  if(osMutexAcquire(MotorHandle, osWaitForever)==osOK){
+
+		  //logic for changing the speed here
+		  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, SET);
+		  osMutexRelease(MotorHandle);
+		  osDelay(2000);
+	  }
+
+   osDelay(1);
+  }
+  /* USER CODE END ChangeSpeed */
+}
+
+/* USER CODE BEGIN Header_InitMotor */
+/**
+* @brief Function implementing the Init thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_InitMotor */
+void InitMotor(void *argument)
+{
+  /* USER CODE BEGIN InitMotor */
+  /* Infinite loop */
+  for(;;)
+  {
+   bldc_motor_init(&htim1);
+
+
+
+   osDelay(1);
+  }
+  /* USER CODE END InitMotor */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM2 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM2) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

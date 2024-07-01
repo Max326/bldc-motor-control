@@ -48,7 +48,7 @@ struct BLDC_Motor {
 //void Motor_Stop(void);
 //void Motor_SetSpeed(uint16_t speed);
 
-void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com);
+void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm);
 void bldc_motor_Config_Channel_Init(void);
 void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel);
 void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel);
