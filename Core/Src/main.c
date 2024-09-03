@@ -29,6 +29,10 @@
 
 #include "stdio.h"
 
+#include <math.h>
+#include <stdint.h>
+
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,6 +42,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+
 
 /* USER CODE END PD */
 
@@ -57,6 +63,10 @@ UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
 uint32_t pot;
+
+//volatile uint16_t amplitude = 2048; // Example initial amplitude (Half of the PWM max value)
+volatile uint16_t amplitude = 10000; // Example initial amplitude (Half of the PWM max value)
+volatile float step_size = 0.5;     // Example initial step size
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,6 +83,8 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
 
 /* USER CODE END 0 */
 
@@ -110,24 +122,27 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-
-//  uint32_t time = HAL_GetTick();
-//  uint32_t max_time = 3000;
   uint32_t dir = CW;
-  uint32_t speed = 50;
-  uint32_t max_speed = 100;
+  volatile uint32_t torque = 70;
+  uint32_t max_torque = 20000;
+  float max_step_size = 0.5;
 
   uint32_t pot_max = 4095;
+//  uint32_t time = HAL_GetTick();
+//  uint32_t max_time = 3000;
 
-  was_button_pressed = false;
 
-  bldc_motor_init(&htim1, &htim3);
-  bldc_motor_set_speed(speed);
+  wasButtonPressed = false;
+
+  MotorInit(&htim1, &htim3);
+  MotorSetTorque(torque);
   MotorSetDir(dir);
+  MotorSetStepSize(step_size);
+
 
   printf("motor initialized\n");
 
-  MotorStart(speed);
+  MotorStart(torque);
 
 //  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
@@ -141,6 +156,13 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 //	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+
+//    if (MotorSetSpeed(newSpeed)){
+//    	printf("New speed: %i\n", newSpeed);
+//    }
+
+//	MotorSixStepAlgorithm();
+
 	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
 
 	HAL_ADC_Start(&hadc1);
@@ -154,21 +176,36 @@ int main(void)
 	}
 
 
-	HAL_Delay(10); // for printfs to be readable
-
 	float pot_ratio = (float)pot / (float)pot_max;
-	int new_speed = (int)(pot_ratio * max_speed);
+//	int new_torque = (int)(pot_ratio * max_torque);
+	int new_torque = (int)(pot_ratio * max_torque);
 
-    check_button_press();
+	volatile float new_step_size = (pot_ratio * max_step_size);
 
-    if (was_button_pressed)
-    {
-    	MotorDirChange();
-    }
+//	printf("Calculated new torque: %d\n", new_torque);
 
-    if (bldc_motor_set_speed(new_speed)){ // check if set speed has changed
-    	printf("New speed: %i\n", new_speed);
-    }
+	MotorSetStepSize(new_step_size);
+
+	CheckButtonPress();
+
+	if (wasButtonPressed)
+	{
+		MotorDirChange();
+	}
+//	printf("Calling MotorSetTorque with new_torque: %d\n", new_torque);
+
+
+//    if (MotorSetTorque(new_torque)) { // Check if set torque has changed
+//        printf("New torque: %i\n", new_torque);
+//    } else {
+//        printf("Torque did not change: %i\n", new_torque);
+//    }
+
+	MotorSine();
+
+//	printf("ADC value: %i\n", new_torque);
+//	HAL_Delay(10);
+
   }
   /* USER CODE END 3 */
 }
@@ -431,7 +468,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 4200-1;
+  htim3.Init.Prescaler = 2100-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 1000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -545,7 +582,7 @@ static void MX_GPIO_Init(void)
 
 void HAL_TIMEx_CommutCallback(TIM_HandleTypeDef *htim)
 {
-	bldc_motor_six_step_algorithm();
+//	MotorSixStepAlgorithm();
 }
 
 int __io_putchar(int ch)
@@ -654,6 +691,9 @@ int __io_putchar(int ch)
 //    Error_Handler();
 //  }
 //}
+
+
+
 
 
 /* USER CODE END 4 */

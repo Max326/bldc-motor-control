@@ -9,42 +9,28 @@
 #include "stm32f4xx_hal_gpio.h"
 
 
-//void Motor_Start(void)
-//{
-//    // enabling pwm
-//	HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
-//
-//    // Start PWM signals
-//    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-//    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-//    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-//}
-//
-
-
-// from tutorial
-
 struct BLDC_Motor bldc;
 
 #define ARR_TIM3_VALUE			100
-#define BLDC_MOTOR_MAX_SPEED	100
+#define BLDC_MOTOR_MAX_TORQUE	100
+#define BLDC_MOTOR_MAX_SPEED	10000
 
-bool was_button_pressed = false;
+bool wasButtonPressed = false;
 
 
-void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
+void MotorInit(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 {
 	bldc.tim_pwm = _tim_pwm;
 	bldc.tim_com = _tim_com;
 
 	bldc.step_number = 1;
-	bldc.speed_pulse = 0;
+	bldc.step_size = 2;
+	bldc.torque = 0;
+	bldc.speed = 0;
 	bldc.dir = CW;
 	bldc.speed_change_delay = 50;
 
-	bldc_motor_Config_Channel_Init();
+	MotorConfigChannelInit();
 
 	__HAL_TIM_SET_AUTORELOAD(bldc.tim_com, ARR_TIM3_VALUE);
 
@@ -58,35 +44,57 @@ void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 
 
 
-bool bldc_motor_set_speed(uint32_t speed)
+bool MotorSetTorque(uint32_t torque)
 {
-	bool is_speed_changed = false;
+	bool isTorqueChanged = false;
 
-	if(speed > BLDC_MOTOR_MAX_SPEED)
+	if(torque > BLDC_MOTOR_MAX_TORQUE)
 	{
-		bldc.speed_pulse = BLDC_MOTOR_MAX_SPEED;
+		bldc.torque = BLDC_MOTOR_MAX_TORQUE;
 	}
 	else
 	{
-		if (bldc.speed_pulse != speed){
-			is_speed_changed = true;
+		if (bldc.torque != torque){
+			isTorqueChanged = true;
 		}
-//		if (speed > bldc.speed_pulse){
-//			while (bldc.speed_pulse <= speed){
-//				bldc.speed_pulse++;
-//				HAL_Delay(bldc.speed_change_delay);
+//		if (torque > bldc.torque){
+//			while (bldc.torque <= torque){
+//				bldc.torque++;
+//				HAL_Delay(bldc.torque_change_delay);
 //			}
 //		}
 //		else {
-//			while (bldc.speed_pulse >= speed){
-//				bldc.speed_pulse--;
-//				HAL_Delay(bldc.speed_change_delay);
+//			while (bldc.torque >= torque){
+//				bldc.torque--;
+//				HAL_Delay(bldc.torque_change_delay);
 //			}
 //		}
-		bldc.speed_pulse = speed;
+		bldc.torque = torque;
 	}
 
-	return is_speed_changed;
+	return isTorqueChanged;
+}
+
+bool MotorSetSpeed(uint32_t newSpeed)
+{
+	bool isSpeedChanged = false;
+
+	if(newSpeed > BLDC_MOTOR_MAX_SPEED)
+	{
+		bldc.speed = BLDC_MOTOR_MAX_SPEED;
+	}
+	else
+	{
+		if (bldc.speed != newSpeed){
+			isSpeedChanged = true;
+		}
+
+//		bldc.speed = newSpeeed;
+
+//		htim3.Init.Prescaler = newSpeed-1;
+	}
+
+	return isSpeedChanged;
 }
 
 void MotorSetDir(direction dir){
@@ -94,7 +102,7 @@ void MotorSetDir(direction dir){
 }
 
 
-void bldc_motor_Config_Channel_Init(void)
+void MotorConfigChannelInit(void)
 {
 	bldc.sConfigOC.OCMode = TIM_OCMODE_PWM1;
 	bldc.sConfigOC.Pulse = 0;
@@ -108,7 +116,7 @@ void bldc_motor_Config_Channel_Init(void)
 
 }
 
-void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel)
+void MotorPWMConfigChannel(uint32_t pulse, uint32_t channel)
 {
     bldc.sConfigOC.OCMode = TIM_OCMODE_PWM1;
     bldc.sConfigOC.Pulse = pulse;
@@ -118,7 +126,7 @@ void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel)
 //	HAL_TIMEx_PWMN_Start(bldc.tim_pwm, channel);
 }
 
-void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
+void MotorOCConfigChannel(uint32_t mode, uint32_t channel)
 {
     bldc.sConfigOC.OCMode = mode;
     HAL_TIM_OC_ConfigChannel(bldc.tim_pwm, &bldc.sConfigOC, channel);
@@ -127,20 +135,20 @@ void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel)
 //	HAL_TIMEx_OCN_Start(bldc.tim_pwm, channel);
 }
 
-void MotorStart(int speed){
+void MotorStart(int torque){
 	int delay = 50;
-	while(bldc.speed_pulse <= speed){
-		bldc.speed_pulse++;
+	while(bldc.torque <= torque){
+		bldc.torque++;
 		HAL_Delay(delay);
 	}
 }
 
 void MotorDirChange(){
-	int old_speed = bldc.speed_pulse;
+	int old_torque = bldc.torque;
 	int delay = 50;
 
-	while(bldc.speed_pulse > 0){
-		bldc.speed_pulse--;
+	while(bldc.torque > 0){
+		bldc.torque--;
 		HAL_Delay(delay);
 	}
 	if (bldc.dir == CW){
@@ -148,35 +156,74 @@ void MotorDirChange(){
 	} else {
 		bldc.dir = CW;
 	}
-	MotorStart(old_speed);
+	MotorStart(old_torque);
 }
 
 
 
-void bldc_motor_set_pwm(uint16_t speedA, uint16_t speedB, uint16_t speedC)
+void MotorSetPWM(uint16_t torqueA, uint16_t torqueB, uint16_t torqueC)
 {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speedA);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, speedB);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, speedC);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, torqueA);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, torqueB);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, torqueC);
 }
 
 
-void check_button_press() {
+void CheckButtonPress() {
     static bool button_state = false;
     bool new_button_state = HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin);
 
     if (new_button_state && !button_state) {
-        was_button_pressed = true;
+        wasButtonPressed = true;
     } else {
-        was_button_pressed = false;
+        wasButtonPressed = false;
     }
 
     button_state = new_button_state;
 }
 
+void MotorSetStepSize(volatile float newStepSize) {
+    bldc.step_size = newStepSize;
+    printf("Set Step Size: %.2f\n", bldc.step_size);  // Debug output
+}
+
+void MotorSine(void) {
+    static float phase = 0.0;
+    float torqueA, torqueB, torqueC;
+
+    // Calculate sine wave values for each phase
+    torqueA = bldc.torque * sinf(phase);
+    torqueB = bldc.torque * sinf(phase + 2.0 * PI / 3.0);
+    torqueC = bldc.torque * sinf(phase + 4.0 * PI / 3.0);
+
+    // Convert float torque values to uint16_t for PWM output (Assuming signed center-aligned PWM)
+    uint16_t pwmA = (uint16_t)((torqueA + bldc.torque) / (2 * bldc.torque) * PWM_MAX_VALUE);
+    uint16_t pwmB = (uint16_t)((torqueB + bldc.torque) / (2 * bldc.torque) * PWM_MAX_VALUE);
+    uint16_t pwmC = (uint16_t)((torqueC + bldc.torque) / (2 * bldc.torque) * PWM_MAX_VALUE);
+
+//    printf("PWM A: %u, PWM B: %u, PWM C: %u\n", (unsigned int)(pwmA), (unsigned int)(pwmB), (unsigned int)(pwmC));
+
+//    printf("Torque: %i, Step Size: %i\n", (int)(bldc.torque), (int)(bldc.step_size));
+
+    // Set PWM values
+    MotorSetPWM(pwmA, pwmB, pwmC);
+
+    // Increment phase
+    phase += bldc.step_size;
+
+    // Keep the phase within the range of 0 to 2*PI
+    if (phase >= 2.0 * PI) {
+        phase -= 2.0 * PI;
+    }
+
+    HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
+}
 
 
-void bldc_motor_six_step_algorithm(void)
+
+void MotorSixStepAlgorithm(void)
 {
     switch (bldc.step_number)
     {
@@ -189,9 +236,11 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
         	HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_RESET);
 
-        	bldc_motor_set_pwm(bldc.speed_pulse, 0, 0);
+        	MotorSetPWM(bldc.torque, 0, 0);
+//        	HAL_Delay(0.025);
 
-//            bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
+
+//            bldc_motor_PWM_Config_Channel(bldc.torque, TIM_CHANNEL_1);
 //            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
 //            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
 //            bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
@@ -205,9 +254,10 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
-        	bldc_motor_set_pwm(bldc.speed_pulse, 0, 0);
+        	MotorSetPWM(bldc.torque, 0, 0);
+//        	HAL_Delay(0.025);
 
-//			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_1);
+//			bldc_motor_PWM_Config_Channel(bldc.torque, TIM_CHANNEL_1);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_3);
@@ -223,10 +273,11 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
 
-        	bldc_motor_set_pwm(0, bldc.speed_pulse, 0);
+        	MotorSetPWM(0, bldc.torque, 0);
+//        	HAL_Delay(0.025);
 
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_1);
-////			bldc_motor_PWM_Config_Channel(bldc.speed_pulse, TIM_CHANNEL_4);
+////			bldc_motor_PWM_Config_Channel(bldc.torque, TIM_CHANNEL_4);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_3);
 
@@ -241,8 +292,9 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_RESET);
 
-//        	bldc_motor_set_pwm(0, bldc.speed_pulse, bldc.speed_pulse);
-        	bldc_motor_set_pwm(0, bldc.speed_pulse, 0);
+//        	bldc_motor_set_pwm(0, bldc.torque, bldc.torque);
+        	MotorSetPWM(0, bldc.torque, 0);
+//        	HAL_Delay(0.025);
 
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_4);
@@ -259,8 +311,9 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
 
-//        	bldc_motor_set_pwm(0, bldc.speed_pulse, bldc.speed_pulse);
-        	bldc_motor_set_pwm(0, 0, bldc.speed_pulse);
+//        	bldc_motor_set_pwm(0, bldc.torque, bldc.torque);
+        	MotorSetPWM(0, 0, bldc.torque);
+//        	HAL_Delay(0.025);
 
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);
@@ -277,7 +330,8 @@ void bldc_motor_six_step_algorithm(void)
 			HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(PWM3EN_GPIO_Port, PWM3EN_Pin, GPIO_PIN_SET);
 
-        	bldc_motor_set_pwm(0, 0, bldc.speed_pulse);
+        	MotorSetPWM(0, 0, bldc.torque);
+//        	HAL_Delay(0.025);
 
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_INACTIVE, TIM_CHANNEL_1);
 //			bldc_motor_OC_Config_Channel(TIM_OCMODE_FORCED_ACTIVE, TIM_CHANNEL_4);

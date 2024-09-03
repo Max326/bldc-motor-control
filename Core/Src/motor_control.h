@@ -13,6 +13,8 @@
 #include <stdbool.h>
 
 
+
+
 //extern TIM_HandleTypeDef htim1;  // Declare htim1 as extern
 //
 ////void Motor_Init(void);
@@ -22,11 +24,15 @@
 //void Spin_Motor(void);
 //
 //void Motor_Stop(void);
-//void Motor_SetSpeed(uint16_t speed);
 //
 //
+#define PWM_MAX_VALUE 4096
+#define PI 3.14159265358979323846
+#define CONTROL_LOOP_FREQUENCY 1000
 
 extern TIM_HandleTypeDef htim1;  // Declare htim1 as extern
+extern TIM_HandleTypeDef htim3;  // Declare htim3 as extern
+
 
 typedef enum
 {
@@ -36,8 +42,10 @@ typedef enum
 
 struct BLDC_Motor {
     uint8_t step_number;
-    uint32_t speed_pulse;
+    volatile float step_size;
+    volatile uint32_t torque;
     uint32_t dir;
+    uint32_t speed;
     uint32_t speed_change_delay;
 
 	TIM_HandleTypeDef	*tim_com;
@@ -46,24 +54,24 @@ struct BLDC_Motor {
 } ;
 
 
-//void Motor_Start(void);
-//void Delay(volatile uint32_t delay);
-//void Spin_Motor(void);
-//void Motor_Stop(void);
-//void Motor_SetSpeed(uint16_t speed);
+void MotorInit(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com);
+void MotorConfigChannelInit(void);
+void MotorPWMConfigChannel(uint32_t pulse, uint32_t channel);
+void MotorOCConfigChannel(uint32_t mode, uint32_t channel);
+void MotorSixStepAlgorithm(void);
+void MotorSine(void);
 
-void bldc_motor_init(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com);
-void bldc_motor_Config_Channel_Init(void);
-void bldc_motor_PWM_Config_Channel(uint32_t pulse, uint32_t channel);
-void bldc_motor_OC_Config_Channel(uint32_t mode, uint32_t channel);
-void bldc_motor_six_step_algorithm(void);
 
-extern bool was_button_pressed;
-void check_button_press();
+extern bool wasButtonPressed;
+void CheckButtonPress();
 
-bool bldc_motor_set_speed(uint32_t speed);
-void MotorStart(int speed);
+void MotorSetPWM(uint16_t torqueA, uint16_t torqueB, uint16_t torqueC);
+bool MotorSetTorque(uint32_t torque);
+void MotorStart(int torque);
 void MotorDirChange();
 void MotorSetDir(direction dir);
+bool MotorSetSpeed(uint32_t newSpeed);
+void MotorSetStepSize(float newStepSize);
+
 
 #endif /* SRC_MOTOR_CONTROL_H_ */
