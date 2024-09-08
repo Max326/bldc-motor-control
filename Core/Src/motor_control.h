@@ -11,7 +11,9 @@
 #include "main.h"
 
 #include <stdbool.h>
-
+#include "cmsis_os.h"
+#include <math.h>
+#include <stdio.h>
 
 
 
@@ -72,6 +74,9 @@ void MotorDirChange();
 void MotorSetDir(direction dir);
 bool MotorSetSpeed(uint32_t newSpeed);
 void MotorSetStepSize(float newStepSize);
+
+extern osMutexId_t stepSizeMutexHandle;
+extern osMutexId_t torqueMutexHandle;
 
 
 #endif /* SRC_MOTOR_CONTROL_H_ */

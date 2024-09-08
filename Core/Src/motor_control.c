@@ -9,6 +9,7 @@
 #include "stm32f4xx_hal_gpio.h"
 
 
+
 struct BLDC_Motor bldc;
 
 #define ARR_TIM3_VALUE			100
@@ -40,6 +41,8 @@ void MotorInit(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+
+	MotorSetPWM(0, 0, 0);  // Ensure all PWM channels are low at the beginning
 }
 
 
@@ -182,12 +185,17 @@ void CheckButtonPress() {
     button_state = new_button_state;
 }
 
-void MotorSetStepSize(volatile float newStepSize) {
-    bldc.step_size = newStepSize;
-    printf("Set Step Size: %.2f\n", bldc.step_size);  // Debug output
+volatile void MotorSetStepSize(volatile float newStepSize) {
+    if (bldc.step_size != newStepSize){
+		bldc.step_size = newStepSize;
+		printf("New step size set: %.2f\n", bldc.step_size);  // Debug output
+    }
+
 }
 
-void MotorSine(void) {
+volatile void MotorSine(void) {
+//    osMutexWait(stepSizeMutexHandle, osWaitForever);
+
     static float phase = 0.0;
     float torqueA, torqueB, torqueC;
 
@@ -215,6 +223,8 @@ void MotorSine(void) {
     if (phase >= 2.0 * PI) {
         phase -= 2.0 * PI;
     }
+
+//    osMutexRelease(stepSizeMutexHandle);
 
     HAL_GPIO_WritePin(PWM1EN_GPIO_Port, PWM1EN_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(PWM2EN_GPIO_Port, PWM2EN_Pin, GPIO_PIN_SET);

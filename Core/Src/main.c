@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -61,6 +62,20 @@ TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart6;
 
+/* Definitions for motorManager */
+osThreadId_t motorManagerHandle;
+const osThreadAttr_t motorManager_attributes = {
+  .name = "motorManager",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for motorRunner */
+osThreadId_t motorRunnerHandle;
+const osThreadAttr_t motorRunner_attributes = {
+  .name = "motorRunner",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 /* USER CODE BEGIN PV */
 uint32_t pot;
 
@@ -77,6 +92,9 @@ static void MX_USART6_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
+void StartDefaultTask(void *argument);
+void StartTask02(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -84,7 +102,8 @@ static void MX_TIM2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-
+osMutexId_t stepSizeMutexHandle;
+osMutexId_t torqueMutexHandle;
 
 /* USER CODE END 0 */
 
@@ -95,6 +114,12 @@ static void MX_TIM2_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	uint32_t dir = CW;
+  volatile uint32_t torque = 70;
+  uint32_t max_torque = 20000;
+  float max_step_size = 0.5;
+
+  uint32_t pot_max = 4095;
 
   /* USER CODE END 1 */
 
@@ -122,12 +147,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  uint32_t dir = CW;
-  volatile uint32_t torque = 70;
-  uint32_t max_torque = 20000;
-  float max_step_size = 0.5;
 
-  uint32_t pot_max = 4095;
 //  uint32_t time = HAL_GetTick();
 //  uint32_t max_time = 3000;
 
@@ -140,6 +160,11 @@ int main(void)
   MotorSetStepSize(step_size);
 
 
+  // Create mutex in your initialization code
+  stepSizeMutexHandle = osMutexNew(NULL);
+  torqueMutexHandle = osMutexNew(NULL);
+
+
   printf("motor initialized\n");
 
   MotorStart(torque);
@@ -147,6 +172,52 @@ int main(void)
 //  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of motorManager */
+  motorManagerHandle = osThreadNew(StartDefaultTask, NULL, &motorManager_attributes);
+
+  /* creation of motorRunner */
+  motorRunnerHandle = osThreadNew(StartTask02, NULL, &motorRunner_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+
+//  if (motorManagerHandle == NULL) {
+//      printf("Failed to create motorManager task.\n");
+//  }
+//
+//  if (motorRunnerHandle == NULL) {
+//      printf("Failed to create motorRunner task.\n");
+//  }
+
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -163,45 +234,7 @@ int main(void)
 
 //	MotorSixStepAlgorithm();
 
-	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
 
-	HAL_ADC_Start(&hadc1);
-
-
-	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
-		pot = HAL_ADC_GetValue(&hadc1);
-//		printf("Potentiometer value: %lu\n", pot);
-	} else {
-		printf("ADC PollForConversion failed\n");
-	}
-
-
-	float pot_ratio = (float)pot / (float)pot_max;
-//	int new_torque = (int)(pot_ratio * max_torque);
-	int new_torque = (int)(pot_ratio * max_torque);
-
-	volatile float new_step_size = (pot_ratio * max_step_size);
-
-//	printf("Calculated new torque: %d\n", new_torque);
-
-	MotorSetStepSize(new_step_size);
-
-	CheckButtonPress();
-
-	if (wasButtonPressed)
-	{
-		MotorDirChange();
-	}
-//	printf("Calling MotorSetTorque with new_torque: %d\n", new_torque);
-
-
-//    if (MotorSetTorque(new_torque)) { // Check if set torque has changed
-//        printf("New torque: %i\n", new_torque);
-//    } else {
-//        printf("Torque did not change: %i\n", new_torque);
-//    }
-
-	MotorSine();
 
 //	printf("ADC value: %i\n", new_torque);
 //	HAL_Delay(10);
@@ -597,106 +630,110 @@ int __io_putchar(int ch)
 }
 
 
-// maybe later
-
-///* GPIO init function */
-//static void MX_GPIO_Init(void)
-//{
-//  GPIO_InitTypeDef GPIO_InitStruct = {0};
-//
-//  __HAL_RCC_GPIOC_CLK_ENABLE();
-//  __HAL_RCC_GPIOH_CLK_ENABLE();
-//  __HAL_RCC_GPIOA_CLK_ENABLE();
-//  __HAL_RCC_GPIOB_CLK_ENABLE();
-//
-//  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-//
-//  GPIO_InitStruct.Pin = GPIO_PIN_13;
-//  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//  GPIO_InitStruct.Pull = GPIO_NOPULL;
-//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-//}
-//
-///* TIM1 init function */
-//static void MX_TIM1_Init(void)
-//{
-//  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-//  TIM_MasterConfigTypeDef sMasterConfig = {0};
-//  TIM_OC_InitTypeDef sConfigOC = {0};
-//
-//  htim1.Instance = TIM1;
-//  htim1.Init.Prescaler = 0;
-//  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-//  htim1.Init.Period = 8399;
-//  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-//  htim1.Init.RepetitionCounter = 0;
-//  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-//  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-//  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-//  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-//  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-//  sConfigOC.Pulse = 4199;
-//  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-//  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-//  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  HAL_TIM_MspPostInit(&htim1);
-//}
-//
-///* ADC1 init function */
-//static void MX_ADC1_Init(void)
-//{
-//  ADC_ChannelConfTypeDef sConfig = {0};
-//  hadc1.Instance = ADC1;
-//  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-//  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-//  hadc1.Init.ScanConvMode = DISABLE;
-//  hadc1.Init.ContinuousConvMode = DISABLE;
-//  hadc1.Init.DiscontinuousConvMode = DISABLE;
-//  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-//  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1;
-//  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-//  hadc1.Init.NbrOfConversion = 1;
-//  hadc1.Init.DMAContinuousRequests = DISABLE;
-//  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-//  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sConfig.Channel = ADC_CHANNEL_10;
-//  sConfig.Rank = 1;
-//  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-//  sConfig.Offset = 0;
-//  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//}
-
-
-
-
-
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+uint32_t dir = CW;
+volatile uint32_t torque = 70;
+uint32_t max_torque = 20000;
+float max_step_size = 0.5;
+
+uint32_t pot_max = 4095;
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+
+  /* Infinite loop */
+  for(;;)
+  {
+	printf("dupa1\n");
+	HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
+
+	HAL_ADC_Start(&hadc1);
+
+	if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
+		pot = HAL_ADC_GetValue(&hadc1);
+
+  //		printf("Potentiometer value: %lu\n", pot);
+	} else {
+		printf("ADC PollForConversion failed\n");
+	}
+
+
+	float pot_ratio = (float)pot / (float)pot_max;
+  //	int new_torque = (int)(pot_ratio * max_torque);
+	int new_torque = (int)(pot_ratio * max_torque);
+
+	volatile float new_step_size = (pot_ratio * max_step_size);
+
+//	printf("Potentiometer value: %lu, Pot Ratio: %.2f, New Step Size: %.2f\n", pot, pot_ratio, new_step_size);
+
+
+  //	printf("Calculated new torque: %d\n", new_torque);
+
+	// Protect access to step_size
+//	osMutexWait(stepSizeMutexHandle, osWaitForever);
+	MotorSetStepSize(new_step_size);
+//	osMutexRelease(stepSizeMutexHandle);
+
+//	osMutexWait(torqueMutexHandle, osWaitForever);
+	// Update torque logic here
+//	osMutexRelease(torqueMutexHandle);
+
+	CheckButtonPress();
+
+	if (wasButtonPressed)
+	{
+		MotorDirChange();
+	}
+	  //	printf("Calling MotorSetTorque with new_torque: %d\n", new_torque);
+
+
+	  //    if (MotorSetTorque(new_torque)) { // Check if set torque has changed
+	  //        printf("New torque: %i\n", new_torque);
+	  //    } else {
+	  //        printf("Torque did not change: %i\n", new_torque);
+	  //    }
+
+//	  	printf("Dupa\n");
+//	  	MotorSine();
+//	  	printf("Dupa 2\n");
+
+
+//	osDelay(1);
+//	  	printf("Dupa 3\n");
+
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartTask02 */
+/**
+* @brief Function implementing the motorRunner thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask02 */
+void StartTask02(void *argument)
+{
+  /* USER CODE BEGIN StartTask02 */
+  /* Infinite loop */
+  for(;;)
+  {
+//	  osMutexWait(stepSizeMutexHandle, osWaitForever);
+	  MotorSine();
+//	  osMutexRelease(stepSizeMutexHandle);
+
+	  osDelay(1);
+  }
+  /* USER CODE END StartTask02 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
