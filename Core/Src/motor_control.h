@@ -56,7 +56,7 @@ struct BLDC_Motor {
 } ;
 
 
-void MotorInit(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com);
+void MotorInit(TIM_HandleTypeDef *_tim_pwm);
 void MotorConfigChannelInit(void);
 void MotorPWMConfigChannel(uint32_t pulse, uint32_t channel);
 void MotorOCConfigChannel(uint32_t mode, uint32_t channel);

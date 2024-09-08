@@ -20,24 +20,14 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "adc.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "motor_control.h"
-//#include "stm32f4xx_hal_adc.h"
-//#include "stm32f4xx_hal_tim.h"
-//#include "stm32f4xx_hal_usart.h"
-#include "stm32f4xx_hal_gpio.h"
-
-#include "stdio.h"
-
-#include <math.h>
-#include <stdint.h>
-
-
+#include "MotorControl/MotorControl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,11 +50,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t pot;
 
-//volatile uint16_t amplitude = 2048; // Example initial amplitude (Half of the PWM max value)
-volatile uint16_t amplitude = 10000; // Example initial amplitude (Half of the PWM max value)
-volatile float step_size = 0.5;     // Example initial step size
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,12 +75,6 @@ osMutexId_t torqueMutexHandle;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint32_t dir = CW;
-  volatile uint32_t torque = 70;
-  uint32_t max_torque = 20000;
-  float max_step_size = 0.5;
-
-  uint32_t pot_max = 4095;
 
   /* USER CODE END 1 */
 
@@ -115,44 +95,23 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART6_UART_Init();
   MX_TIM1_Init();
-  MX_TIM3_Init();
-  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-
-//  uint32_t time = HAL_GetTick();
-//  uint32_t max_time = 3000;
-
-
-  wasButtonPressed = false;
-
-  MotorInit(&htim1, &htim3);
-  MotorSetTorque(torque);
-  MotorSetDir(dir);
-  MotorSetStepSize(step_size);
-
-
-  // Create mutex in your initialization code
-  stepSizeMutexHandle = osMutexNew(NULL);
-  torqueMutexHandle = osMutexNew(NULL);
-
-
-  printf("motor initialized\n");
-
-  MotorStart(torque);
-
-//  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
 
   /* Init scheduler */
-  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  osKernelInitialize();
+
+  /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
   /* Start scheduler */
   osKernelStart();
+
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -202,7 +161,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 84;
+  RCC_OscInitStruct.PLL.PLLN = 100;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -219,7 +178,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -227,10 +186,6 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_TIMEx_CommutCallback(TIM_HandleTypeDef *htim)
-{
-//	MotorSixStepAlgorithm();
-}
 
 int __io_putchar(int ch)
 {

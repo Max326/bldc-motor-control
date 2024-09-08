@@ -25,7 +25,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "MotorControl/MotorControl.h"
+#include "Pot/Pot.h"
+#include "Com/Com.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,19 +49,26 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-/* Definitions for motorManager */
-osThreadId_t motorManagerHandle;
-const osThreadAttr_t motorManager_attributes = {
-  .name = "motorManager",
-  .stack_size = 128 * 4,
+/* Definitions for MotorTask */
+osThreadId_t MotorTaskHandle;
+const osThreadAttr_t MotorTask_attributes = {
+  .name = "MotorTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for PotTask */
+osThreadId_t PotTaskHandle;
+const osThreadAttr_t PotTask_attributes = {
+  .name = "PotTask",
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for motorRunner */
-osThreadId_t motorRunnerHandle;
-const osThreadAttr_t motorRunner_attributes = {
-  .name = "motorRunner",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+/* Definitions for ComTask */
+osThreadId_t ComTaskHandle;
+const osThreadAttr_t ComTask_attributes = {
+  .name = "ComTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,8 +76,9 @@ const osThreadAttr_t motorRunner_attributes = {
 
 /* USER CODE END FunctionPrototypes */
 
-void StartDefaultTask(void *argument);
-void StartTask02(void *argument);
+void StartMotorTask(void *argument);
+void StartPotTask(void *argument);
+void StartComTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -99,11 +109,14 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of motorManager */
-  motorManagerHandle = osThreadNew(StartDefaultTask, NULL, &motorManager_attributes);
+  /* creation of MotorTask */
+  MotorTaskHandle = osThreadNew(StartMotorTask, NULL, &MotorTask_attributes);
 
-  /* creation of motorRunner */
-  motorRunnerHandle = osThreadNew(StartTask02, NULL, &motorRunner_attributes);
+  /* creation of PotTask */
+  PotTaskHandle = osThreadNew(StartPotTask, NULL, &PotTask_attributes);
+
+  /* creation of ComTask */
+  ComTaskHandle = osThreadNew(StartComTask, NULL, &ComTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -115,75 +128,46 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_StartMotorTask */
 /**
-  * @brief  Function implementing the motorManager thread.
+  * @brief  Function implementing the MotorTask thread.
   * @param  argument: Not used
   * @retval None
   */
-uint32_t dir = CW;
-volatile uint32_t torque = 70;
-uint32_t max_torque = 20000;
-float max_step_size = 0.5;
-
-uint32_t pot_max = 4095;
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+/* USER CODE END Header_StartMotorTask */
+void StartMotorTask(void *argument)
 {
-  /* USER CODE BEGIN StartDefaultTask */
-  /* Infinite loop */
-  for(;;)
-  {
-	  printf("dupa1\n");
-		HAL_GPIO_TogglePin(LDN_GPIO_Port, LDN_Pin);
-
-		HAL_ADC_Start(&hadc1);
-
-		if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK) {
-			pot = HAL_ADC_GetValue(&hadc1);
-
-		//		printf("Potentiometer value: %lu\n", pot);
-		} else {
-			printf("ADC PollForConversion failed\n");
-		}
-
-
-		float pot_ratio = (float)pot / (float)pot_max;
-		//	int new_torque = (int)(pot_ratio * max_torque);
-		int new_torque = (int)(pot_ratio * max_torque);
-
-		volatile float new_step_size = (pot_ratio * max_step_size);
-
-		CheckButtonPress();
-
-		if (wasButtonPressed)
-		{
-			MotorDirChange();
-		}
-		osDelay(1);
-  }
-
-
-  /* USER CODE END StartDefaultTask */
+  /* USER CODE BEGIN StartMotorTask */
+  MotorControlTask();
+  /* USER CODE END StartMotorTask */
 }
 
-/* USER CODE BEGIN Header_StartTask02 */
+/* USER CODE BEGIN Header_StartPotTask */
 /**
-* @brief Function implementing the motorRunner thread.
+* @brief Function implementing the PotTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
+/* USER CODE END Header_StartPotTask */
+void StartPotTask(void *argument)
 {
-  /* USER CODE BEGIN StartTask02 */
-  /* Infinite loop */
-  for(;;)
-  {
-	  MotorSine();
-	  osDelay(1);
-  }
-  /* USER CODE END StartTask02 */
+  /* USER CODE BEGIN StartPotTask */
+  PotTask();
+  /* USER CODE END StartPotTask */
+}
+
+/* USER CODE BEGIN Header_StartComTask */
+/**
+* @brief Function implementing the ComTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartComTask */
+void StartComTask(void *argument)
+{
+  /* USER CODE BEGIN StartComTask */
+  ComTask();
+  /* USER CODE END StartComTask */
 }
 
 /* Private application code --------------------------------------------------*/

@@ -1,0 +1,15 @@
+MotorControl.c:32:6:MotorControlTask	2
+MotorControl.c:48:6:MotorIncreaseSpeed	2
+MotorControl.c:56:6:MotorDecreaseSpeed	2
+MotorControl.c:64:6:MotorChangeDirection	1
+MotorControl.c:68:6:MotorIncreaseTorque	2
+MotorControl.c:76:6:MotorDecreaseTorque	2
+MotorControl.c:84:6:MotorPotModeToggle	1
+MotorControl.c:88:7:MotorGetSpeed	1
+MotorControl.c:92:7:MotorGetTorque	1
+MotorControl.c:96:7:MotorGetDirection	1
+MotorControl.c:100:6:MotorGetPotModeState	1
+MotorControl.c:104:13:MotorControlInit	1
+MotorControl.c:114:13:MotorSinusoidalCalculate	2
+MotorControl.c:135:13:MotorSetPWM	1
+MotorControl.c:141:14:Map	1

@@ -1,0 +1,4 @@
+Pot.c:16:6:PotTask	1
+Pot.c:26:10:PotGetValue	1
+Pot.c:31:6:AdcConvCpltCallback	1
+Pot.c:35:13:PotInit	2

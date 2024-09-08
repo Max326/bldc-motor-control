@@ -19,10 +19,9 @@ struct BLDC_Motor bldc;
 bool wasButtonPressed = false;
 
 
-void MotorInit(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
+void MotorInit(TIM_HandleTypeDef *_tim_pwm)
 {
 	bldc.tim_pwm = _tim_pwm;
-	bldc.tim_com = _tim_com;
 
 	bldc.step_number = 1;
 	bldc.step_size = 2;
@@ -39,8 +38,8 @@ void MotorInit(TIM_HandleTypeDef *_tim_pwm, TIM_HandleTypeDef *_tim_com)
 	HAL_TIMEx_ConfigCommutationEvent_IT(bldc.tim_pwm, TIM_TS_ITR2, TIM_COMMUTATION_TRGI);
 
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
 	MotorSetPWM(0, 0, 0);  // Ensure all PWM channels are low at the beginning
 }
